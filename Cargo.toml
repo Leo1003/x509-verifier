@@ -1,0 +1,6 @@
+[package]
+name = "x509-verifier"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
