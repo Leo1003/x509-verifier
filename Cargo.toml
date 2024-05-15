@@ -16,3 +16,7 @@ signature = "2.2.0"
 static_assertions = "1.1.0"
 x509-cert = "0.2.5"
 x509-ocsp = { version = "0.2.1", features = ["std", "builder"] }
+
+[patch.crates-io]
+# See: https://github.com/RustCrypto/signatures/pull/823
+ecdsa = { git = "https://github.com/Leo1003/signatures", branch = "pr-823-backports" }
