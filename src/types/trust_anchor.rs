@@ -1,3 +1,4 @@
+use crate::traits::AsEntity;
 use x509_cert::{
     der::{asn1::BitString, Any},
     ext::pkix::NameConstraints,
@@ -34,5 +35,15 @@ impl TryFrom<TbsCertificate> for TrustAnchor {
             subject_public_key_info: tbs_certificate.subject_public_key_info,
             name_constraints,
         })
+    }
+}
+
+impl AsEntity for TrustAnchor {
+    fn subject(&self) -> &RdnSequence {
+        &self.subject
+    }
+
+    fn spki(&self) -> &SubjectPublicKeyInfo<Any, BitString> {
+        &self.subject_public_key_info
     }
 }

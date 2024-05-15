@@ -3,9 +3,9 @@ use crate::types::TrustAnchor;
 
 #[derive(Clone, Debug, Default)]
 pub struct CertificatePool {
-    trust_anchors: Vec<TrustAnchor>,
+    pub(crate) trust_anchors: Vec<TrustAnchor>,
 
-    intermediate_certs: Vec<Certificate>,
+    pub(crate) intermediate_certs: Vec<Certificate>,
 }
 
 impl Extend<TrustAnchor> for CertificatePool {

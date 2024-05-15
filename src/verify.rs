@@ -1,13 +1,12 @@
-use std::{
-    ops::{Add, Sub},
-    time::SystemTime,
-};
-use x509_cert::{ext::pkix::BasicConstraints, Certificate};
-
+use self::path::{CertificateBuildingPath, CertificatePath, PathLenRequirement};
 use crate::{
     certpool::CertificatePool,
-    error::{PkixErrorKind, PkixResult},
+    error::{PkixErrorKind, PkixResult}, traits::AsEntity,
 };
+use std::time::SystemTime;
+use x509_cert::{ext::pkix::BasicConstraints, Certificate};
+
+mod path;
 
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
@@ -22,69 +21,49 @@ impl Default for VerifyOptions {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub enum PathLenRequirement {
-    #[default]
-    EndEntity,
-    Ca(usize),
-}
-
-impl Add<usize> for PathLenRequirement {
-    type Output = Self;
-
-    fn add(self, rhs: usize) -> Self::Output {
-        match self {
-            Self::EndEntity => {
-                if let Some(l) = rhs.checked_sub(1) {
-                    Self::Ca(l)
-                } else {
-                    Self::EndEntity
-                }
-            }
-            Self::Ca(n) => Self::Ca(n.saturating_add(rhs)),
-        }
-    }
-}
-
-impl Sub<usize> for PathLenRequirement {
-    type Output = Self;
-
-    fn sub(self, rhs: usize) -> Self::Output {
-        match self {
-            Self::EndEntity => Self::EndEntity,
-            Self::Ca(n) => {
-                if let Some(l) = n.checked_sub(rhs) {
-                    Self::Ca(l)
-                } else {
-                    Self::EndEntity
-                }
-            }
-        }
-    }
-}
-
 pub fn verify_cert_chain(
     cert_pool: &CertificatePool,
     certificate: &Certificate,
     options: &VerifyOptions,
 ) -> PkixResult<()> {
-    verify_recursive(
+    cert_path_building(
         cert_pool,
-        certificate,
+        &CertificateBuildingPath::with_end_certificate(certificate),
         options,
         PathLenRequirement::EndEntity,
     )
 }
 
-fn verify_recursive(
+fn cert_path_building(
     cert_pool: &CertificatePool,
-    certificate: &Certificate,
+    cert_path: &CertificateBuildingPath,
     options: &VerifyOptions,
     path_req: PathLenRequirement,
 ) -> PkixResult<()> {
     // Check the certificate itself
-    check_certificate(certificate, options, path_req)?;
+    check_certificate(cert_path.head(), options, path_req)?;
 
+    for path in find_paths_to_trustanchor(cert_pool, cert_path)? {
+        match cert_path_verifying(&path) {
+            Ok(()) => return Ok(()),
+            Err(_) => continue,
+        }
+    }
+
+    for next_path in find_paths_to_intermediate(cert_pool, cert_path)? {
+        match cert_path_building(cert_pool, &next_path, options, path_req + 1) {
+            Ok(()) => return Ok(()),
+            Err(_) => continue,
+        }
+    }
+
+    Err(PkixErrorKind::UnknownIssuer.into())
+}
+
+fn cert_path_verifying(cert_path: &CertificatePath) -> PkixResult<()> {
+    // TODO: Check name constraints
+    // TODO: Verify signature
+    todo!();
     Ok(())
 }
 
@@ -101,6 +80,34 @@ fn check_certificate(
     check_validty(cert, options.time)?;
 
     Ok(())
+}
+
+fn find_paths_to_trustanchor<'a>(
+    cert_pool: &'a CertificatePool,
+    cert_path: &'a CertificateBuildingPath,
+) -> PkixResult<impl Iterator<Item = CertificatePath<'a>>> {
+    let issuer = &cert_path.head().tbs_certificate.issuer;
+
+    Ok(cert_pool
+        .trust_anchors
+        .iter()
+        .filter(|ta| ta.subject == *issuer)
+        .map(|ta| cert_path.complete(ta)))
+}
+
+fn find_paths_to_intermediate<'a>(
+    cert_pool: &'a CertificatePool,
+    cert_path: &'a CertificateBuildingPath,
+) -> PkixResult<impl Iterator<Item = CertificateBuildingPath<'a>>> {
+    let issuer = &cert_path.head().tbs_certificate.issuer;
+
+    Ok(cert_pool
+        .intermediate_certs
+        .iter()
+        .filter(|cert| cert.tbs_certificate.subject == *issuer)
+        // RFC 4158 Section 5.2 Loop Detection
+        .filter(|cert| cert_path.find_entity(*cert).is_none())
+        .map(|cert| cert_path.push(cert)))
 }
 
 fn check_basic_constraints(cert: &Certificate, path_req: PathLenRequirement) -> PkixResult<()> {
@@ -150,4 +157,11 @@ fn check_validty(cert: &Certificate, time: SystemTime) -> PkixResult<()> {
     }
 
     Ok(())
+}
+
+fn verify_signature<E>(cert: &Certificate, issuer: &E) -> PkixResult<()>
+where
+    E: AsEntity,
+{
+    todo!();
 }

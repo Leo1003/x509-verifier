@@ -61,6 +61,7 @@ pub enum PkixErrorKind {
     CertificateNotYetValid,
     DerError,
     Other,
+    UnknownIssuer,
 }
 
 impl PkixErrorKind {
@@ -72,6 +73,7 @@ impl PkixErrorKind {
             PkixErrorKind::CertificateNotYetValid => "certificate not yet valid",
             PkixErrorKind::DerError => "DER error",
             PkixErrorKind::Other => "other error",
+            PkixErrorKind::UnknownIssuer => "unknown issuer",
         }
     }
 }
