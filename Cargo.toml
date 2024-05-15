@@ -4,5 +4,15 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+const-oid = { version = "0.9.6", features = ["db"] }
+der = { version = "0.7.9", features = ["derive"] }
+digest = "0.10.7"
+ecdsa = { version = "0.16.9", features = ["verifying", "pkcs8", "der"] }
+p256 = "0.13.2"
+p384 = "0.13.0"
+p521 = "0.13.3"
+sha2 = "0.10.8"
+signature = "2.2.0"
+static_assertions = "1.1.0"
 x509-cert = "0.2.5"
 x509-ocsp = { version = "0.2.1", features = ["std", "builder"] }

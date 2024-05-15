@@ -46,9 +46,9 @@ impl From<PkixErrorKind> for PkixError {
     }
 }
 
-impl From<x509_cert::der::Error> for PkixError {
-    fn from(err: x509_cert::der::Error) -> Self {
-        Self::new(PkixErrorKind::Other, Some(err))
+impl From<der::Error> for PkixError {
+    fn from(err: der::Error) -> Self {
+        Self::new(PkixErrorKind::DerError, Some(err))
     }
 }
 
@@ -59,6 +59,8 @@ pub enum PkixErrorKind {
     InvalidValidity,
     CertificateExpired,
     CertificateNotYetValid,
+    InvalidPublicKey,
+    BadSignature,
     DerError,
     Other,
     UnknownIssuer,
@@ -71,6 +73,8 @@ impl PkixErrorKind {
             PkixErrorKind::InvalidValidity => "invalid validity",
             PkixErrorKind::CertificateExpired => "certificate expired",
             PkixErrorKind::CertificateNotYetValid => "certificate not yet valid",
+            PkixErrorKind::InvalidPublicKey => "invalid public key",
+            PkixErrorKind::BadSignature => "bad signature",
             PkixErrorKind::DerError => "DER error",
             PkixErrorKind::Other => "other error",
             PkixErrorKind::UnknownIssuer => "unknown issuer",
