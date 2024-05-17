@@ -1,11 +1,36 @@
 use const_oid::{
     db::{rfc5912::*, rfc8410::*},
-    ObjectIdentifier,
+    AssociatedOid, ObjectIdentifier,
 };
+use der::AnyRef;
+use digest::{typenum::Unsigned, OutputSizeUser};
+use rsa::pkcs1::{RsaPssParams, TrailerField};
+use sha2::{Sha256, Sha384, Sha512};
 use x509_cert::{
     der::{asn1::Null, Sequence},
     spki::AlgorithmIdentifier,
 };
+
+const fn pss_params<D>() -> RsaPssParams<'static>
+where
+    D: AssociatedOid + OutputSizeUser,
+{
+    RsaPssParams {
+        hash: AlgorithmIdentifier {
+            oid: D::OID,
+            parameters: Some(AnyRef::NULL),
+        },
+        mask_gen: AlgorithmIdentifier {
+            oid: ID_MGF_1,
+            parameters: Some(AlgorithmIdentifier {
+                oid: D::OID,
+                parameters: Some(AnyRef::NULL),
+            }),
+        },
+        salt_len: D::OutputSize::U8,
+        trailer_field: TrailerField::BC,
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Sequence)]
 pub struct RsassaPssParams {
@@ -85,59 +110,17 @@ pub const ALG_SHA512_WITH_RSA_ENCRYPTION: AlgorithmIdentifier<Null> = AlgorithmI
     oid: SHA_512_WITH_RSA_ENCRYPTION,
     parameters: Some(Null),
 };
-pub const ALG_SHA256_RSA_SSA_PSS: AlgorithmIdentifier<RsassaPssParams> = AlgorithmIdentifier {
+pub const ALG_SHA256_RSA_SSA_PSS: AlgorithmIdentifier<RsaPssParams> = AlgorithmIdentifier {
     oid: ID_RSASSA_PSS,
-    parameters: Some(RsassaPssParams {
-        hash_algorithm: AlgorithmIdentifier {
-            oid: ID_SHA_256,
-            parameters: Some(Null),
-        },
-        mask_gen_algorithm: AlgorithmIdentifier {
-            oid: ID_MGF_1,
-            parameters: Some(AlgorithmIdentifier {
-                oid: ID_SHA_256,
-                parameters: Some(Null),
-            }),
-        },
-        salt_length: 32,
-        trailer_field: 1,
-    }),
+    parameters: Some(pss_params::<Sha256>()),
 };
-pub const ALG_SHA384_RSA_SSA_PSS: AlgorithmIdentifier<RsassaPssParams> = AlgorithmIdentifier {
+pub const ALG_SHA384_RSA_SSA_PSS: AlgorithmIdentifier<RsaPssParams> = AlgorithmIdentifier {
     oid: ID_RSASSA_PSS,
-    parameters: Some(RsassaPssParams {
-        hash_algorithm: AlgorithmIdentifier {
-            oid: ID_SHA_384,
-            parameters: Some(Null),
-        },
-        mask_gen_algorithm: AlgorithmIdentifier {
-            oid: ID_MGF_1,
-            parameters: Some(AlgorithmIdentifier {
-                oid: ID_SHA_384,
-                parameters: Some(Null),
-            }),
-        },
-        salt_length: 48,
-        trailer_field: 1,
-    }),
+    parameters: Some(pss_params::<Sha384>()),
 };
-pub const ALG_SHA512_RSA_SSA_PSS: AlgorithmIdentifier<RsassaPssParams> = AlgorithmIdentifier {
+pub const ALG_SHA512_RSA_SSA_PSS: AlgorithmIdentifier<RsaPssParams> = AlgorithmIdentifier {
     oid: ID_RSASSA_PSS,
-    parameters: Some(RsassaPssParams {
-        hash_algorithm: AlgorithmIdentifier {
-            oid: ID_SHA_512,
-            parameters: Some(Null),
-        },
-        mask_gen_algorithm: AlgorithmIdentifier {
-            oid: ID_MGF_1,
-            parameters: Some(AlgorithmIdentifier {
-                oid: ID_SHA_512,
-                parameters: Some(Null),
-            }),
-        },
-        salt_length: 64,
-        trailer_field: 1,
-    }),
+    parameters: Some(pss_params::<Sha512>()),
 };
 pub const ALG_ECDSA_WITH_SHA256: AlgorithmIdentifier<()> = AlgorithmIdentifier {
     oid: ECDSA_WITH_SHA_256,
