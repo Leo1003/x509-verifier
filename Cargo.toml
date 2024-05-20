@@ -8,6 +8,7 @@ const-oid = { version = "0.9.6", features = ["db"] }
 der = { version = "0.7.9", features = ["derive"] }
 digest = "0.10.7"
 ecdsa = { version = "0.16.9", features = ["verifying", "pkcs8", "der"] }
+ed25519-dalek = { version = "2.1.1", features = ["signature", "pkcs8", "digest"] }
 p256 = "0.13.2"
 p384 = "0.13.0"
 p521 = "0.13.3"
