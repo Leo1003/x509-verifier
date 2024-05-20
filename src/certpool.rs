@@ -1,5 +1,5 @@
-use x509_cert::Certificate;
 use crate::types::TrustAnchor;
+use x509_cert::Certificate;
 
 #[derive(Clone, Debug, Default)]
 pub struct CertificatePool {

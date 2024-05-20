@@ -1,7 +1,11 @@
 use self::path::{CertificateBuildingPath, CertificatePath, PathLenRequirement};
 use crate::{
-    algorithm::*, certpool::CertificatePool, error::{PkixErrorKind, PkixResult}, traits::AsEntity
+    algorithm::*,
+    certpool::CertificatePool,
+    error::{PkixErrorKind, PkixResult},
+    traits::AsEntity,
 };
+use der::{referenced::OwnedToRef, Encode};
 use std::time::SystemTime;
 use x509_cert::{ext::pkix::BasicConstraints, Certificate};
 
@@ -174,5 +178,25 @@ where
         &ECDSA_P521_SHA512,
         &ED25519,
     ];
+
+    for algorithm in algorithms.iter() {
+        if algorithm.publickey_oid() == issuer.spki().algorithm.oid
+            && algorithm.signature_oid() == cert.signature_algorithm.oid
+        {
+            let data = cert.tbs_certificate.to_der()?;
+            match algorithm.verify_signature(
+                issuer.spki().owned_to_ref(),
+                cert.signature_algorithm.owned_to_ref(),
+                &data,
+                cert.signature
+                    .as_bytes()
+                    .ok_or(PkixErrorKind::BadSignature)?,
+            ) {
+                Ok(()) => return Ok(()),
+                Err(e) => todo!(),
+            }
+        }
+    }
+
     todo!();
 }

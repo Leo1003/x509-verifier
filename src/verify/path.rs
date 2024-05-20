@@ -1,6 +1,6 @@
 use crate::{traits::AsEntity, types::TrustAnchor};
 use std::ops::{Add, Sub};
-use x509_cert::{certificate, Certificate};
+use x509_cert::Certificate;
 
 #[derive(Clone, Debug)]
 pub struct CertificatePath<'a> {
@@ -32,13 +32,18 @@ impl CertificateBuildingPath<'_> {
     }
 
     pub fn find_entity<E>(&self, entity: &E) -> Option<&Certificate>
-    where E: AsEntity {
-        if self.end_certificate.subject() == entity.subject() && self.end_certificate.spki() == entity.spki() {
+    where
+        E: AsEntity,
+    {
+        if self.end_certificate.subject() == entity.subject()
+            && self.end_certificate.spki() == entity.spki()
+        {
             Some(self.end_certificate)
         } else {
-            self.intermediates.iter().copied().find(|cert| {
-                cert.subject() == entity.subject() && cert.spki() == entity.spki()
-            })
+            self.intermediates
+                .iter()
+                .copied()
+                .find(|cert| cert.subject() == entity.subject() && cert.spki() == entity.spki())
         }
     }
 }

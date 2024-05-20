@@ -1,13 +1,14 @@
 use std::fmt::Debug;
-use x509_cert::{der::{asn1::BitString, Any}, name::RdnSequence, spki::SubjectPublicKeyInfo, Certificate};
+use x509_cert::{
+    der::{asn1::BitString, Any},
+    name::RdnSequence,
+    spki::SubjectPublicKeyInfo,
+    Certificate,
+};
 
-pub trait CRLFetcher: Debug + Send + Sync {
+pub trait CRLFetcher: Debug + Send + Sync {}
 
-}
-
-pub trait OCSPAccessor: Debug + Send + Sync {
-
-}
+pub trait OCSPAccessor: Debug + Send + Sync {}
 
 pub trait AsEntity {
     fn subject(&self) -> &RdnSequence;
