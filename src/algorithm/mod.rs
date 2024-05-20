@@ -6,10 +6,7 @@ mod ed25519;
 mod identifiers;
 mod rsa;
 
-pub use ecdsa::{
-    EcdsaAlgorithm, ECDSA_P256_SHA256, ECDSA_P256_SHA384, ECDSA_P384_SHA256, ECDSA_P384_SHA384,
-    ECDSA_P521_SHA512,
-};
+pub use ecdsa::{EcdsaAlgorithm, ECDSA_SHA256, ECDSA_SHA384, ECDSA_SHA512};
 pub use ed25519::{Ed25519Algorithm, ED25519};
 pub use rsa::{RsaPkcs1Algorithm, RSA_PKCS1_SHA256, RSA_PKCS1_SHA384, RSA_PKCS1_SHA512, RSA_PSS};
 

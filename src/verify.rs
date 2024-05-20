@@ -166,18 +166,18 @@ fn verify_signature<E>(cert: &Certificate, issuer: &E) -> PkixResult<()>
 where
     E: AsEntity,
 {
-    let algorithms: [&dyn VerificationAlgorithm; 10] = [
+    let algorithms: [&dyn VerificationAlgorithm; 8] = [
         &RSA_PKCS1_SHA256,
         &RSA_PKCS1_SHA384,
         &RSA_PKCS1_SHA512,
         &RSA_PSS,
-        &ECDSA_P256_SHA256,
-        &ECDSA_P256_SHA384,
-        &ECDSA_P384_SHA256,
-        &ECDSA_P384_SHA384,
-        &ECDSA_P521_SHA512,
+        &ECDSA_SHA256,
+        &ECDSA_SHA384,
+        &ECDSA_SHA512,
         &ED25519,
     ];
+
+    let mut error = PkixErrorKind::UnsupportedAlgorithm.into();
 
     for algorithm in algorithms.iter() {
         if algorithm.publickey_oid() == issuer.spki().algorithm.oid
@@ -193,10 +193,15 @@ where
                     .ok_or(PkixErrorKind::BadSignature)?,
             ) {
                 Ok(()) => return Ok(()),
-                Err(e) => todo!(),
+                Err(e) => match e.kind() {
+                    PkixErrorKind::InvalidAlgorithm | PkixErrorKind::UnsupportedAlgorithm => {
+                        error = e
+                    }
+                    _ => return Err(e),
+                },
             }
         }
     }
 
-    todo!();
+    Err(error)
 }
