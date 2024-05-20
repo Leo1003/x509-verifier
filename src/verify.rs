@@ -1,7 +1,6 @@
 use self::path::{CertificateBuildingPath, CertificatePath, PathLenRequirement};
 use crate::{
-    certpool::CertificatePool,
-    error::{PkixErrorKind, PkixResult}, traits::AsEntity,
+    algorithm::*, certpool::CertificatePool, error::{PkixErrorKind, PkixResult}, traits::AsEntity
 };
 use std::time::SystemTime;
 use x509_cert::{ext::pkix::BasicConstraints, Certificate};
@@ -163,5 +162,17 @@ fn verify_signature<E>(cert: &Certificate, issuer: &E) -> PkixResult<()>
 where
     E: AsEntity,
 {
+    let algorithms: [&dyn VerificationAlgorithm; 10] = [
+        &RSA_PKCS1_SHA256,
+        &RSA_PKCS1_SHA384,
+        &RSA_PKCS1_SHA512,
+        &RSA_PSS,
+        &ECDSA_P256_SHA256,
+        &ECDSA_P256_SHA384,
+        &ECDSA_P384_SHA256,
+        &ECDSA_P384_SHA384,
+        &ECDSA_P521_SHA512,
+        &ED25519,
+    ];
     todo!();
 }

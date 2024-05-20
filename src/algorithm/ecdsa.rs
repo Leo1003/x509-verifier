@@ -1,6 +1,7 @@
-use super::{identifiers, VerificationAlgorithm};
+use super::{assert_result, identifiers, VerificationAlgorithm};
 use crate::error::{PkixError, PkixErrorKind, PkixResult};
 use const_oid::{AssociatedOid, ObjectIdentifier};
+use der::asn1::Null;
 use digest::{generic_array::ArrayLength, Digest};
 use ecdsa::{
     der::{MaxOverhead, MaxSize, Signature},
@@ -15,7 +16,7 @@ use ecdsa::{
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
-use pkcs8::SubjectPublicKeyInfoRef;
+use pkcs8::{AlgorithmIdentifierRef, SubjectPublicKeyInfoRef};
 use sha2::{Sha256, Sha384, Sha512};
 use signature::hazmat::PrehashVerifier;
 use std::{marker::PhantomData, ops::Add};
@@ -49,19 +50,19 @@ impl<D> AssociatedAlgorithmIdentifier for EcdsaAlgorithm<NistP521, D> {
 }
 
 impl<C> SignatureAlgorithmIdentifier for EcdsaAlgorithm<C, Sha256> {
-    type Params = ();
+    type Params = Null;
 
     const SIGNATURE_ALGORITHM_IDENTIFIER: AlgorithmIdentifier<Self::Params> =
         identifiers::ALG_ECDSA_WITH_SHA256;
 }
 impl<C> SignatureAlgorithmIdentifier for EcdsaAlgorithm<C, Sha384> {
-    type Params = ();
+    type Params = Null;
 
     const SIGNATURE_ALGORITHM_IDENTIFIER: AlgorithmIdentifier<Self::Params> =
         identifiers::ALG_ECDSA_WITH_SHA384;
 }
 impl<C> SignatureAlgorithmIdentifier for EcdsaAlgorithm<C, Sha512> {
-    type Params = ();
+    type Params = Null;
 
     const SIGNATURE_ALGORITHM_IDENTIFIER: AlgorithmIdentifier<Self::Params> =
         identifiers::ALG_ECDSA_WITH_SHA512;
@@ -69,7 +70,7 @@ impl<C> SignatureAlgorithmIdentifier for EcdsaAlgorithm<C, Sha512> {
 
 impl<C, D> VerificationAlgorithm for EcdsaAlgorithm<C, D>
 where
-    Self: AssociatedAlgorithmIdentifier + SignatureAlgorithmIdentifier,
+    Self: AssociatedAlgorithmIdentifier + SignatureAlgorithmIdentifier<Params = Null>,
     C: PrimeCurve + AssociatedOid + CurveArithmetic + PointCompression,
     AffinePoint<C>: FromEncodedPoint<C> + ToEncodedPoint<C> + VerifyPrimitive<C>,
     MaxSize<C>: ArrayLength<u8>,
@@ -78,12 +79,28 @@ where
     <FieldBytesSize<C> as Add>::Output: Add<MaxOverhead> + ArrayLength<u8>,
     D: Digest,
 {
+    fn signature_oid(&self) -> ObjectIdentifier {
+        Self::SIGNATURE_ALGORITHM_IDENTIFIER.oid
+    }
+
+    fn publickey_oid(&self) -> ObjectIdentifier {
+        Self::ALGORITHM_IDENTIFIER.oid
+    }
+
     fn verify_signature(
         &self,
         spki: SubjectPublicKeyInfoRef<'_>,
+        algorithm: AlgorithmIdentifierRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()> {
+        assert_result(
+            identifiers::decode_algorithm_identifier(algorithm)
+                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e)))?,
+            Self::SIGNATURE_ALGORITHM_IDENTIFIER,
+            PkixErrorKind::InvalidAlgorithm,
+        )?;
+
         let key = VerifyingKey::<C>::try_from(spki)
             .map_err(|e| PkixError::new(PkixErrorKind::InvalidPublicKey, Some(e)))?;
         let sig = Signature::<C>::from_bytes(signature)

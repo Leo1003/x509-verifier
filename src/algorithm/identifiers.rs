@@ -2,14 +2,30 @@ use const_oid::{
     db::{rfc5912::*, rfc8410::*},
     AssociatedOid, ObjectIdentifier,
 };
-use der::AnyRef;
+use der::{asn1::Null, AnyRef, Choice, DecodeValue};
 use digest::{typenum::Unsigned, OutputSizeUser};
+use pkcs8::AlgorithmIdentifierRef;
 use rsa::pkcs1::{RsaPssParams, TrailerField};
 use sha2::{Sha256, Sha384, Sha512};
-use x509_cert::{
-    der::{asn1::Null, Sequence},
-    spki::AlgorithmIdentifier,
-};
+use x509_cert::spki::AlgorithmIdentifier;
+
+pub fn decode_algorithm_identifier<'a, T>(
+    algorithm: AlgorithmIdentifierRef<'a>,
+) -> der::Result<AlgorithmIdentifier<T>>
+where
+    T: Choice<'a> + DecodeValue<'a>,
+{
+    Ok(match algorithm.parameters {
+        Some(parameter) => AlgorithmIdentifier {
+            oid: algorithm.oid,
+            parameters: Some(parameter.decode_as::<T>()?),
+        },
+        None => AlgorithmIdentifier {
+            oid: algorithm.oid,
+            parameters: None,
+        },
+    })
+}
 
 const fn pss_params<D>() -> RsaPssParams<'static>
 where
@@ -29,53 +45,6 @@ where
         },
         salt_len: D::OutputSize::U8,
         trailer_field: TrailerField::BC,
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Sequence)]
-pub struct RsassaPssParams {
-    #[asn1(default = "Self::default_hash_algorithm")]
-    pub hash_algorithm: AlgorithmIdentifier<Null>,
-    #[asn1(default = "Self::default_mask_gen_algorithm")]
-    pub mask_gen_algorithm: AlgorithmIdentifier<AlgorithmIdentifier<Null>>,
-    #[asn1(default = "Self::default_salt_length")]
-    pub salt_length: u32,
-    #[asn1(default = "Self::default_trailer_field")]
-    pub trailer_field: u32,
-}
-
-impl RsassaPssParams {
-    fn default_hash_algorithm() -> AlgorithmIdentifier<Null> {
-        AlgorithmIdentifier {
-            oid: ID_SHA_1,
-            parameters: Some(Null),
-        }
-    }
-
-    fn default_mask_gen_algorithm() -> AlgorithmIdentifier<AlgorithmIdentifier<Null>> {
-        AlgorithmIdentifier {
-            oid: ID_MGF_1,
-            parameters: Some(Self::default_hash_algorithm()),
-        }
-    }
-
-    fn default_salt_length() -> u32 {
-        20
-    }
-
-    fn default_trailer_field() -> u32 {
-        1
-    }
-}
-
-impl Default for RsassaPssParams {
-    fn default() -> Self {
-        Self {
-            hash_algorithm: Self::default_hash_algorithm(),
-            mask_gen_algorithm: Self::default_mask_gen_algorithm(),
-            salt_length: Self::default_salt_length(),
-            trailer_field: Self::default_trailer_field(),
-        }
     }
 }
 
@@ -122,19 +91,19 @@ pub const ALG_SHA512_RSA_SSA_PSS: AlgorithmIdentifier<RsaPssParams> = AlgorithmI
     oid: ID_RSASSA_PSS,
     parameters: Some(pss_params::<Sha512>()),
 };
-pub const ALG_ECDSA_WITH_SHA256: AlgorithmIdentifier<()> = AlgorithmIdentifier {
+pub const ALG_ECDSA_WITH_SHA256: AlgorithmIdentifier<Null> = AlgorithmIdentifier {
     oid: ECDSA_WITH_SHA_256,
     parameters: None,
 };
-pub const ALG_ECDSA_WITH_SHA384: AlgorithmIdentifier<()> = AlgorithmIdentifier {
+pub const ALG_ECDSA_WITH_SHA384: AlgorithmIdentifier<Null> = AlgorithmIdentifier {
     oid: ECDSA_WITH_SHA_384,
     parameters: None,
 };
-pub const ALG_ECDSA_WITH_SHA512: AlgorithmIdentifier<()> = AlgorithmIdentifier {
+pub const ALG_ECDSA_WITH_SHA512: AlgorithmIdentifier<Null> = AlgorithmIdentifier {
     oid: ECDSA_WITH_SHA_512,
     parameters: None,
 };
-pub const ALG_ED25519: AlgorithmIdentifier<()> = AlgorithmIdentifier {
+pub const ALG_ED25519: AlgorithmIdentifier<Null> = AlgorithmIdentifier {
     oid: ID_ED_25519,
     parameters: None,
 };
