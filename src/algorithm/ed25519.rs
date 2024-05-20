@@ -1,8 +1,8 @@
 use super::{identifiers, VerificationAlgorithm};
 use crate::error::{PkixError, PkixErrorKind, PkixResult};
-use der::{asn1::BitString, referenced::OwnedToRef, Any};
 use ed25519_dalek::Verifier;
-use ed25519_dalek::{pkcs8::spki::SubjectPublicKeyInfo, Signature, VerifyingKey};
+use ed25519_dalek::{Signature, VerifyingKey};
+use pkcs8::SubjectPublicKeyInfoRef;
 use x509_cert::spki::{
     AlgorithmIdentifier, AssociatedAlgorithmIdentifier, SignatureAlgorithmIdentifier,
 };
@@ -32,11 +32,11 @@ impl SignatureAlgorithmIdentifier for Ed25519Algorithm {
 impl VerificationAlgorithm for Ed25519Algorithm {
     fn verify_signature(
         &self,
-        spki: &SubjectPublicKeyInfo<Any, BitString>,
+        spki: SubjectPublicKeyInfoRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()> {
-        let public_key = VerifyingKey::try_from(spki.owned_to_ref())
+        let public_key = VerifyingKey::try_from(spki)
             .map_err(|e| PkixError::new(PkixErrorKind::InvalidPublicKey, Some(e)))?;
         let signature = Signature::from_slice(signature)
             .map_err(|e| PkixError::new(PkixErrorKind::BadSignature, Some(e)))?;

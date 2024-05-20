@@ -1,6 +1,5 @@
 use crate::error::PkixResult;
-use der::{asn1::BitString, Any};
-use p256::pkcs8::SubjectPublicKeyInfo;
+use pkcs8::SubjectPublicKeyInfoRef;
 use x509_cert::spki::{AssociatedAlgorithmIdentifier, SignatureAlgorithmIdentifier};
 
 mod ecdsa;
@@ -23,7 +22,7 @@ pub trait VerificationAlgorithm:
 {
     fn verify_signature(
         &self,
-        spki: &SubjectPublicKeyInfo<Any, BitString>,
+        spki: SubjectPublicKeyInfoRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()>;

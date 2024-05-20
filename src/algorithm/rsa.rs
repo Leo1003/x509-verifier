@@ -1,16 +1,10 @@
 use super::{identifiers, VerificationAlgorithm};
 use crate::error::{PkixError, PkixErrorKind, PkixResult};
 use const_oid::AssociatedOid;
-use der::{
-    asn1::{BitString, Null},
-    referenced::OwnedToRef,
-    Any,
-};
+use der::asn1::Null;
 use digest::DynDigest;
-use rsa::{
-    pkcs1::RsaPssParams, pkcs8::SubjectPublicKeyInfo, traits::SignatureScheme, Pkcs1v15Sign, Pss,
-    RsaPublicKey,
-};
+use pkcs8::SubjectPublicKeyInfoRef;
+use rsa::{pkcs1::RsaPssParams, traits::SignatureScheme, Pkcs1v15Sign, Pss, RsaPublicKey};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use std::marker::PhantomData;
 use x509_cert::spki::{
@@ -76,7 +70,7 @@ where
 {
     fn verify_signature(
         &self,
-        spki: &SubjectPublicKeyInfo<Any, BitString>,
+        spki: SubjectPublicKeyInfoRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()> {
@@ -91,7 +85,7 @@ where
 {
     fn verify_signature(
         &self,
-        spki: &SubjectPublicKeyInfo<Any, BitString>,
+        spki: SubjectPublicKeyInfoRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()> {
@@ -100,7 +94,7 @@ where
 }
 
 fn rsa_verify<D, S>(
-    spki: &SubjectPublicKeyInfo<Any, BitString>,
+    spki: SubjectPublicKeyInfoRef<'_>,
     scheme: S,
     data: &[u8],
     signature: &[u8],
@@ -109,7 +103,7 @@ where
     S: SignatureScheme,
     D: Digest,
 {
-    let key = RsaPublicKey::try_from(spki.owned_to_ref())
+    let key = RsaPublicKey::try_from(spki)
         .map_err(|e| PkixError::new(PkixErrorKind::InvalidPublicKey, Some(e)))?;
 
     let mut hasher = D::new();

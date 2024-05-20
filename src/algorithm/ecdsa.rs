@@ -15,15 +15,12 @@ use ecdsa::{
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
+use pkcs8::SubjectPublicKeyInfoRef;
 use sha2::{Sha256, Sha384, Sha512};
 use signature::hazmat::PrehashVerifier;
 use std::{marker::PhantomData, ops::Add};
-use x509_cert::{
-    der::{asn1::BitString, referenced::OwnedToRef, Any},
-    spki::{
-        AlgorithmIdentifier, AssociatedAlgorithmIdentifier, SignatureAlgorithmIdentifier,
-        SubjectPublicKeyInfo,
-    },
+use x509_cert::spki::{
+    AlgorithmIdentifier, AssociatedAlgorithmIdentifier, SignatureAlgorithmIdentifier,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -83,11 +80,11 @@ where
 {
     fn verify_signature(
         &self,
-        spki: &SubjectPublicKeyInfo<Any, BitString>,
+        spki: SubjectPublicKeyInfoRef<'_>,
         data: &[u8],
         signature: &[u8],
     ) -> PkixResult<()> {
-        let key = VerifyingKey::<C>::try_from(spki.owned_to_ref())
+        let key = VerifyingKey::<C>::try_from(spki)
             .map_err(|e| PkixError::new(PkixErrorKind::InvalidPublicKey, Some(e)))?;
         let sig = Signature::<C>::from_bytes(signature)
             .map_err(|e| PkixError::new(PkixErrorKind::DerError, Some(e)))?;
