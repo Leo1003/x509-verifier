@@ -65,8 +65,19 @@ fn cert_path_building(
 
 fn cert_path_verifying(cert_path: &CertificatePath) -> PkixResult<()> {
     // TODO: Check name constraints
-    // TODO: Verify signature
-    todo!();
+
+    let mut entity: &dyn AsEntity = cert_path.trust_anchor;
+    for cert in cert_path
+        .intermediates
+        .iter()
+        .copied()
+        .rev()
+        .chain(Some(cert_path.end_certificate))
+    {
+        verify_signature(cert, entity)?;
+        entity = cert;
+    }
+
     Ok(())
 }
 
@@ -164,7 +175,7 @@ fn check_validty(cert: &Certificate, time: SystemTime) -> PkixResult<()> {
 
 fn verify_signature<E>(cert: &Certificate, issuer: &E) -> PkixResult<()>
 where
-    E: AsEntity,
+    E: AsEntity + ?Sized,
 {
     let algorithms: [&dyn VerificationAlgorithm; 8] = [
         &RSA_PKCS1_SHA256,
