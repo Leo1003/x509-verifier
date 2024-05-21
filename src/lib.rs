@@ -9,3 +9,5 @@ pub mod error;
 pub mod traits;
 pub mod types;
 pub mod verify;
+
+pub use certpool::CertificatePool;
