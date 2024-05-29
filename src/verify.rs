@@ -1,14 +1,19 @@
-use self::path::{CertificateBuildingPath, CertificatePath, PathLenRequirement};
+use self::{
+    key_usage::CaProfile,
+    path::{CertificateBuildingPath, CertificatePath, PathLenRequirement},
+};
 use crate::{
     algorithm::*,
     certpool::CertificatePool,
     error::{PkixErrorKind, PkixResult},
-    traits::AsEntity,
+    traits::{AsEntity, KeyUsagesVerifier},
+    types::CertificateKeyUsages,
 };
 use der::{referenced::OwnedToRef, Encode};
 use std::time::SystemTime;
 use x509_cert::{ext::pkix::BasicConstraints, Certificate};
 
+pub mod key_usage;
 mod path;
 
 #[derive(Clone, Debug)]
@@ -28,12 +33,14 @@ pub fn verify_cert_chain(
     cert_pool: &CertificatePool,
     certificate: &Certificate,
     options: &VerifyOptions,
+    key_usages_verifier: &dyn KeyUsagesVerifier,
 ) -> PkixResult<()> {
     cert_path_building(
         cert_pool,
         &CertificateBuildingPath::with_end_certificate(certificate),
         options,
         PathLenRequirement::EndEntity,
+        key_usages_verifier,
     )
 }
 
@@ -42,9 +49,10 @@ fn cert_path_building(
     cert_path: &CertificateBuildingPath,
     options: &VerifyOptions,
     path_req: PathLenRequirement,
+    kus_verifier: &dyn KeyUsagesVerifier,
 ) -> PkixResult<()> {
     // Check the certificate itself
-    check_certificate(cert_path.head(), options, path_req)?;
+    check_certificate(cert_path.head(), options, path_req, kus_verifier)?;
 
     for path in find_paths_to_trustanchor(cert_pool, cert_path)? {
         match cert_path_verifying(&path) {
@@ -54,7 +62,13 @@ fn cert_path_building(
     }
 
     for next_path in find_paths_to_intermediate(cert_pool, cert_path)? {
-        match cert_path_building(cert_pool, &next_path, options, path_req + 1) {
+        match cert_path_building(
+            cert_pool,
+            &next_path,
+            options,
+            path_req + 1,
+            &CaProfile::default(),
+        ) {
             Ok(()) => return Ok(()),
             Err(_) => continue,
         }
@@ -85,13 +99,13 @@ fn check_certificate(
     cert: &Certificate,
     options: &VerifyOptions,
     path_req: PathLenRequirement,
+    kus_verifier: &dyn KeyUsagesVerifier,
 ) -> PkixResult<()> {
     // TODO: Check no unknown critical extensions
-    // TODO: Check key usage
-    // TODO: Check extended key usage
 
     check_basic_constraints(cert, path_req)?;
     check_validty(cert, options.time)?;
+    check_kus(cert, kus_verifier)?;
 
     Ok(())
 }
@@ -171,6 +185,16 @@ fn check_validty(cert: &Certificate, time: SystemTime) -> PkixResult<()> {
     }
 
     Ok(())
+}
+
+fn check_kus(cert: &Certificate, verifier: &dyn KeyUsagesVerifier) -> PkixResult<()> {
+    let kus = CertificateKeyUsages::try_from(cert)?;
+
+    if verifier.verify_key_usages(cert, &kus) {
+        Ok(())
+    } else {
+        Err(PkixErrorKind::KeyUsageViolated.into())
+    }
 }
 
 fn verify_signature<E>(cert: &Certificate, issuer: &E) -> PkixResult<()>

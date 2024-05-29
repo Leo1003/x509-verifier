@@ -6,7 +6,7 @@ use std::{
 use x509_cert::Certificate;
 use x509_verifier::{
     types::TrustAnchor,
-    verify::{verify_cert_chain, VerifyOptions},
+    verify::{key_usage::ServerProfile, verify_cert_chain, VerifyOptions},
     CertificatePool,
 };
 
@@ -35,7 +35,8 @@ where
     cert_pool.extend(cert_iter);
 
     let options = VerifyOptions::default();
-    verify_cert_chain(&cert_pool, &end_cert, &options).expect("Failed to verify certificate chain");
+    verify_cert_chain(&cert_pool, &end_cert, &options, &ServerProfile::default())
+        .expect("Failed to verify certificate chain");
 }
 
 fn get_base_path() -> PathBuf {

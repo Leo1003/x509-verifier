@@ -6,9 +6,15 @@ use x509_cert::{
     Certificate,
 };
 
+use crate::types::CertificateKeyUsages;
+
 pub trait CRLFetcher: Debug + Send + Sync {}
 
 pub trait OCSPAccessor: Debug + Send + Sync {}
+
+pub trait KeyUsagesVerifier: Debug + Send + Sync {
+    fn verify_key_usages(&self, cert: &Certificate, key_usages: &CertificateKeyUsages) -> bool;
+}
 
 pub trait AsEntity {
     fn subject(&self) -> &RdnSequence;
