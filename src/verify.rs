@@ -57,6 +57,7 @@ fn cert_path_building(
     for path in find_paths_to_trustanchor(cert_pool, cert_path)? {
         match cert_path_verifying(&path) {
             Ok(()) => return Ok(()),
+            // TODO: Return error
             Err(_) => continue,
         }
     }
@@ -70,6 +71,7 @@ fn cert_path_building(
             &CaProfile::default(),
         ) {
             Ok(()) => return Ok(()),
+            // TODO: Return error
             Err(_) => continue,
         }
     }

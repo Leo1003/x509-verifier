@@ -1,4 +1,5 @@
-use std::fmt::Debug;
+use crate::types::CertificateKeyUsages;
+use std::{error::Error, fmt::Debug, future::Future};
 use x509_cert::{
     der::{asn1::BitString, Any},
     name::RdnSequence,
@@ -6,11 +7,21 @@ use x509_cert::{
     Certificate,
 };
 
-use crate::types::CertificateKeyUsages;
+pub trait Request {
+    type Response;
+}
 
-pub trait CRLFetcher: Debug + Send + Sync {}
+pub trait SyncAccessor<R: Request>: Debug + Send + Sync {
+    type Error: Error + 'static;
 
-pub trait OCSPAccessor: Debug + Send + Sync {}
+    fn retrieve(request: R) -> Result<R::Response, Self::Error>;
+}
+
+pub trait AsyncAccessor<R: Request>: Debug + Send + Sync {
+    type Error: Error + 'static;
+
+    fn retrieve_async(request: R) -> impl Future<Output = Result<R::Response, Self::Error>> + Send;
+}
 
 pub trait KeyUsagesVerifier: Debug + Send + Sync {
     fn verify_key_usages(&self, cert: &Certificate, key_usages: &CertificateKeyUsages) -> bool;
