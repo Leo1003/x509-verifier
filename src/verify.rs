@@ -9,12 +9,26 @@ use crate::{
     traits::{AsEntity, KeyUsagesVerifier},
     types::CertificateKeyUsages,
 };
+use const_oid::ObjectIdentifier;
 use der::{referenced::OwnedToRef, Encode};
+use pkcs8::AssociatedOid;
 use std::time::SystemTime;
-use x509_cert::{ext::pkix::BasicConstraints, Certificate};
+use x509_cert::{
+    ext::pkix::{BasicConstraints, ExtendedKeyUsage, KeyUsage},
+    Certificate,
+};
 
 pub mod key_usage;
 mod path;
+
+#[rustfmt::skip]
+// Currently known extension OIDs,
+// remember to update this list after supporting more extensions
+const KNOWN_EXTENSION_OIDS: [ObjectIdentifier; 3] = [
+    BasicConstraints::OID,
+    KeyUsage::OID,
+    ExtendedKeyUsage::OID,
+];
 
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
@@ -103,8 +117,7 @@ fn check_certificate(
     path_req: PathLenRequirement,
     kus_verifier: &dyn KeyUsagesVerifier,
 ) -> PkixResult<()> {
-    // TODO: Check no unknown critical extensions
-
+    check_critical_extensions(cert)?;
     check_basic_constraints(cert, path_req)?;
     check_validty(cert, options.time)?;
     check_kus(cert, kus_verifier)?;
@@ -138,6 +151,22 @@ fn find_paths_to_intermediate<'a>(
         // RFC 4158 Section 5.2 Loop Detection
         .filter(|cert| cert_path.find_entity(*cert).is_none())
         .map(|cert| cert_path.push(cert)))
+}
+
+fn check_critical_extensions(cert: &Certificate) -> PkixResult<()> {
+    for ext in cert
+        .tbs_certificate
+        .extensions
+        .iter()
+        .flatten()
+        .filter(|ext| ext.critical)
+    {
+        // TODO: Let user add their own known extensions
+        if !KNOWN_EXTENSION_OIDS.contains(&ext.extn_id) {
+            return Err(PkixErrorKind::UnknownCriticalExtension.into());
+        }
+    }
+    Ok(())
 }
 
 fn check_basic_constraints(cert: &Certificate, path_req: PathLenRequirement) -> PkixResult<()> {
