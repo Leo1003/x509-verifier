@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 # RustCrypto family
 const-oid = { version = "0.9.6", features = ["db"] }
-der = { version = "0.7.9", features = ["derive"] }
+der = { version = "0.7.9", features = ["derive", "time"] }
 digest = "0.10.7"
 ecdsa = { version = "0.16.9", features = ["verifying", "pkcs8", "der"] }
 p256 = "0.13.2"
@@ -21,6 +21,7 @@ x509-ocsp = { version = "0.2.1", features = ["std", "builder"] }
 
 ed25519-dalek = { version = "2.1.1", features = ["signature", "pkcs8", "digest"] }
 static_assertions = "1.1.0"
+time = "0.3.36"
 
 [patch.crates-io]
 # See: https://github.com/RustCrypto/signatures/pull/823

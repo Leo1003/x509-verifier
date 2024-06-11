@@ -12,15 +12,15 @@ use crate::{
 use const_oid::ObjectIdentifier;
 use der::{referenced::OwnedToRef, Encode};
 use pkcs8::AssociatedOid;
-use std::time::SystemTime;
+use time::PrimitiveDateTime;
 use x509_cert::{
     ext::pkix::{BasicConstraints, ExtendedKeyUsage, KeyUsage},
     Certificate,
 };
 
 pub mod key_usage;
-mod path;
 mod options;
+mod path;
 
 pub use options::VerifyOptions;
 
@@ -121,7 +121,7 @@ fn check_certificate(
 ) -> PkixResult<()> {
     check_critical_extensions(cert)?;
     check_basic_constraints(cert, path_req)?;
-    check_validty(cert, options.time)?;
+    check_validty(cert, options)?;
     check_kus(cert, kus_verifier)?;
 
     Ok(())
@@ -174,19 +174,30 @@ fn check_basic_constraints(cert: &Certificate, path_req: PathLenRequirement) -> 
     Ok(())
 }
 
-fn check_validty(cert: &Certificate, time: SystemTime) -> PkixResult<()> {
-    // Currently, we use SystemTime for checking, but it had its limitations.
-    let not_before = cert.tbs_certificate.validity.not_before.to_system_time();
-    let not_after = cert.tbs_certificate.validity.not_after.to_system_time();
-
+fn check_validty(cert: &Certificate, options: &VerifyOptions) -> PkixResult<()> {
+    let not_before =
+        PrimitiveDateTime::try_from(cert.tbs_certificate.validity.not_before.to_date_time())?
+            .assume_utc();
+    let not_after =
+        PrimitiveDateTime::try_from(cert.tbs_certificate.validity.not_after.to_date_time())?
+            .assume_utc();
     if not_before > not_after {
         return Err(PkixErrorKind::InvalidValidity.into());
     }
-    if time < not_before {
-        return Err(PkixErrorKind::CertificateNotYetValid.into());
-    }
-    if time > not_after {
-        return Err(PkixErrorKind::CertificateExpired.into());
+
+    // Since it is common to encounter expired certificates,
+    // provide an option to bypass the validity check when debugging/fixing the issues.
+    //
+    // But the invalid validity check above is always performed
+    // since it is the basic requirement of a valid certificate.
+    if !options.insecure_bypass_validity_check() {
+        let time = options.verify_time();
+        if time < not_before {
+            return Err(PkixErrorKind::CertificateNotYetValid.into());
+        }
+        if time > not_after {
+            return Err(PkixErrorKind::CertificateExpired.into());
+        }
     }
 
     Ok(())
