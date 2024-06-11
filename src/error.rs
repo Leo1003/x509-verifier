@@ -26,6 +26,12 @@ impl PkixError {
     pub fn kind(&self) -> PkixErrorKind {
         self.kind
     }
+
+    pub(crate) fn merge(&mut self, other: Self) {
+        if self.kind.significant() < other.kind.significant() {
+            *self = other;
+        }
+    }
 }
 
 impl Display for PkixError {
@@ -66,11 +72,31 @@ pub enum PkixErrorKind {
     KeyUsageViolated,
     BadSignature,
     DerError,
-    Other,
     UnknownIssuer,
 }
 
 impl PkixErrorKind {
+    pub const fn significant(&self) -> u32 {
+        match self {
+            // Certificate validity errors
+            PkixErrorKind::CertificateNotYetValid => 305,
+            PkixErrorKind::CertificateExpired => 304,
+            PkixErrorKind::KeyUsageViolated => 303,
+            PkixErrorKind::BadSignature => 302,
+            PkixErrorKind::BasicConstraintsViolated => 301,
+            PkixErrorKind::UnknownCriticalExtension => 300,
+            // Unsupported features of this library
+            PkixErrorKind::UnsupportedAlgorithm => 200,
+            // Certificate format errors or specification violations
+            PkixErrorKind::InvalidAlgorithm => 103,
+            PkixErrorKind::InvalidValidity => 102,
+            PkixErrorKind::InvalidPublicKey => 101,
+            PkixErrorKind::DerError => 100,
+            // Algorithm errors
+            PkixErrorKind::UnknownIssuer => 0,
+        }
+    }
+
     pub const fn as_str(&self) -> &'static str {
         match self {
             PkixErrorKind::BasicConstraintsViolated => "basic constraints violated",
@@ -84,7 +110,6 @@ impl PkixErrorKind {
             PkixErrorKind::KeyUsageViolated => "key usage violated",
             PkixErrorKind::BadSignature => "bad signature",
             PkixErrorKind::DerError => "DER error",
-            PkixErrorKind::Other => "other error",
             PkixErrorKind::UnknownIssuer => "unknown issuer",
         }
     }

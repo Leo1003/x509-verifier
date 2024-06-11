@@ -5,7 +5,7 @@ use self::{
 use crate::{
     algorithm::*,
     certpool::CertificatePool,
-    error::{PkixErrorKind, PkixResult},
+    error::{PkixError, PkixErrorKind, PkixResult},
     traits::{AsEntity, KeyUsagesVerifier},
     types::CertificateKeyUsages,
 };
@@ -68,11 +68,11 @@ fn cert_path_building(
     // Check the certificate itself
     check_certificate(cert_path.head(), options, path_req, kus_verifier)?;
 
+    let mut current_error: PkixError = PkixErrorKind::UnknownIssuer.into();
     for path in find_paths_to_trustanchor(cert_pool, cert_path)? {
         match cert_path_verifying(&path) {
             Ok(()) => return Ok(()),
-            // TODO: Return error
-            Err(_) => continue,
+            Err(e) => current_error.merge(e),
         }
     }
 
@@ -85,12 +85,11 @@ fn cert_path_building(
             &CaProfile::default(),
         ) {
             Ok(()) => return Ok(()),
-            // TODO: Return error
-            Err(_) => continue,
+            Err(e) => current_error.merge(e),
         }
     }
 
-    Err(PkixErrorKind::UnknownIssuer.into())
+    Err(current_error)
 }
 
 fn cert_path_verifying(cert_path: &CertificatePath) -> PkixResult<()> {
