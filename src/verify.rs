@@ -20,6 +20,9 @@ use x509_cert::{
 
 pub mod key_usage;
 mod path;
+mod options;
+
+pub use options::VerifyOptions;
 
 #[rustfmt::skip]
 // Currently known extension OIDs,
@@ -29,19 +32,6 @@ const KNOWN_EXTENSION_OIDS: [ObjectIdentifier; 3] = [
     KeyUsage::OID,
     ExtendedKeyUsage::OID,
 ];
-
-#[derive(Clone, Debug)]
-pub struct VerifyOptions {
-    pub time: SystemTime,
-}
-
-impl Default for VerifyOptions {
-    fn default() -> Self {
-        Self {
-            time: SystemTime::now(),
-        }
-    }
-}
 
 pub fn verify_cert_chain(
     cert_pool: &CertificatePool,
@@ -69,14 +59,27 @@ fn cert_path_building(
     check_certificate(cert_path.head(), options, path_req, kus_verifier)?;
 
     let mut current_error: PkixError = PkixErrorKind::UnknownIssuer.into();
-    for path in find_paths_to_trustanchor(cert_pool, cert_path)? {
+    let issuer = &cert_path.head().tbs_certificate.issuer;
+
+    // Check the possibility to go directly to a trust anchor
+    for ta in cert_pool.find_trustanchors_by_subject(issuer) {
+        let path = cert_path.complete(ta);
+
         match cert_path_verifying(&path) {
             Ok(()) => return Ok(()),
             Err(e) => current_error.merge(e),
         }
     }
 
-    for next_path in find_paths_to_intermediate(cert_pool, cert_path)? {
+    // Find next certificates
+    for next_cert in cert_pool.find_intermediate_by_subject(issuer) {
+        // RFC 4158 Section 5.2 Loop Detection
+        if cert_path.find_entity(next_cert).is_some() {
+            // Skip the certificate if it would form a loop
+            continue;
+        }
+        let next_path = cert_path.push(next_cert);
+
         match cert_path_building(
             cert_pool,
             &next_path,
@@ -122,34 +125,6 @@ fn check_certificate(
     check_kus(cert, kus_verifier)?;
 
     Ok(())
-}
-
-fn find_paths_to_trustanchor<'a>(
-    cert_pool: &'a CertificatePool,
-    cert_path: &'a CertificateBuildingPath,
-) -> PkixResult<impl Iterator<Item = CertificatePath<'a>>> {
-    let issuer = &cert_path.head().tbs_certificate.issuer;
-
-    Ok(cert_pool
-        .trust_anchors
-        .iter()
-        .filter(|ta| ta.subject == *issuer)
-        .map(|ta| cert_path.complete(ta)))
-}
-
-fn find_paths_to_intermediate<'a>(
-    cert_pool: &'a CertificatePool,
-    cert_path: &'a CertificateBuildingPath,
-) -> PkixResult<impl Iterator<Item = CertificateBuildingPath<'a>>> {
-    let issuer = &cert_path.head().tbs_certificate.issuer;
-
-    Ok(cert_pool
-        .intermediate_certs
-        .iter()
-        .filter(|cert| cert.tbs_certificate.subject == *issuer)
-        // RFC 4158 Section 5.2 Loop Detection
-        .filter(|cert| cert_path.find_entity(*cert).is_none())
-        .map(|cert| cert_path.push(cert)))
 }
 
 fn check_critical_extensions(cert: &Certificate) -> PkixResult<()> {
