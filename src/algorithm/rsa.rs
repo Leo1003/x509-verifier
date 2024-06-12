@@ -41,11 +41,11 @@ impl VerificationAlgorithm for RsaPssAlgorithm {
     ) -> PkixResult<()> {
         let alg: AlgorithmIdentifier<RsaPssParams> =
             identifiers::decode_algorithm_identifier(algorithm)
-                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e)))?;
+                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithmIdentifier, Some(e)))?;
         assert_result(
             alg.oid,
             self.signature_oid(),
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
         let pss_params = alg.parameters.unwrap_or_default();
         validate_pss_params(&pss_params)?;
@@ -80,17 +80,17 @@ fn validate_pss_params(pss_params: &RsaPssParams) -> PkixResult<()> {
     assert_result(
         Some(pss_params.hash),
         pss_params.mask_gen.parameters,
-        PkixErrorKind::InvalidAlgorithm,
+        PkixErrorKind::InvalidAlgorithmIdentifier,
     )?;
     assert_result(
         pss_params.mask_gen.oid,
         ID_MGF_1,
-        PkixErrorKind::InvalidAlgorithm,
+        PkixErrorKind::InvalidAlgorithmIdentifier,
     )?;
     assert_result(
         pss_params.hash.parameters,
         Some(AnyRef::NULL),
-        PkixErrorKind::InvalidAlgorithm,
+        PkixErrorKind::InvalidAlgorithmIdentifier,
     )?;
     Ok(())
 }
@@ -124,16 +124,16 @@ where
         signature: &[u8],
     ) -> PkixResult<()> {
         let alg = identifiers::decode_algorithm_identifier(algorithm)
-            .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e)))?;
+            .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithmIdentifier, Some(e)))?;
         assert_result(
             alg.oid,
             self.signature_oid(),
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
         assert_result(
             alg.parameters,
             Some(AnyRef::NULL),
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
 
         rsa_verify::<D, _>(spki, Pkcs1v15Sign::new::<D>(), data, signature)

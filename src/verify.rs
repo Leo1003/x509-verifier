@@ -245,7 +245,7 @@ where
             ) {
                 Ok(()) => return Ok(()),
                 Err(e) => match e.kind() {
-                    PkixErrorKind::InvalidAlgorithm | PkixErrorKind::UnsupportedAlgorithm => {
+                    PkixErrorKind::InvalidAlgorithmIdentifier | PkixErrorKind::UnsupportedAlgorithm => {
                         error = e
                     }
                     _ => return Err(e),

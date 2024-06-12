@@ -31,9 +31,9 @@ impl VerificationAlgorithm for Ed25519Algorithm {
     ) -> PkixResult<()> {
         assert_result(
             identifiers::decode_algorithm_identifier(algorithm)
-                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e)))?,
+                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithmIdentifier, Some(e)))?,
             identifiers::ALG_ED25519,
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
 
         let public_key = VerifyingKey::try_from(spki)

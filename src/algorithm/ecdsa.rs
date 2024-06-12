@@ -60,18 +60,18 @@ where
     ) -> PkixResult<()> {
         let alg: AlgorithmIdentifier<AnyRef<'_>> =
             identifiers::decode_algorithm_identifier(algorithm)
-                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e)))?;
+                .map_err(|e| PkixError::new(PkixErrorKind::InvalidAlgorithmIdentifier, Some(e)))?;
         assert_result(
             alg.oid,
             self.signature_oid(),
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
-        assert_result(alg.parameters, None, PkixErrorKind::InvalidAlgorithm)?;
+        assert_result(alg.parameters, None, PkixErrorKind::InvalidAlgorithmIdentifier)?;
 
         assert_result(
             spki.algorithm.oid,
             self.publickey_oid(),
-            PkixErrorKind::InvalidAlgorithm,
+            PkixErrorKind::InvalidAlgorithmIdentifier,
         )?;
         match spki.algorithm.parameters_oid() {
             Ok(NistP256::OID) => {
@@ -96,7 +96,7 @@ where
                 ecdsa_verify::<NistP521, D>(&key, data, &sig)
             }
             Ok(_) => Err(PkixErrorKind::UnsupportedAlgorithm.into()),
-            Err(e) => Err(PkixError::new(PkixErrorKind::InvalidAlgorithm, Some(e))),
+            Err(e) => Err(PkixError::new(PkixErrorKind::InvalidAlgorithmIdentifier, Some(e))),
         }
     }
 }

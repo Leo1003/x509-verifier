@@ -66,7 +66,7 @@ pub enum PkixErrorKind {
     CertificateExpired,
     CertificateNotYetValid,
     InvalidPublicKey,
-    InvalidAlgorithm,
+    InvalidAlgorithmIdentifier,
     UnsupportedAlgorithm,
     UnknownCriticalExtension,
     KeyUsageViolated,
@@ -88,7 +88,7 @@ impl PkixErrorKind {
             // Unsupported features of this library
             PkixErrorKind::UnsupportedAlgorithm => 200,
             // Certificate format errors or specification violations
-            PkixErrorKind::InvalidAlgorithm => 103,
+            PkixErrorKind::InvalidAlgorithmIdentifier => 103,
             PkixErrorKind::InvalidValidity => 102,
             PkixErrorKind::InvalidPublicKey => 101,
             PkixErrorKind::DerError => 100,
@@ -104,7 +104,7 @@ impl PkixErrorKind {
             PkixErrorKind::CertificateExpired => "certificate expired",
             PkixErrorKind::CertificateNotYetValid => "certificate not yet valid",
             PkixErrorKind::InvalidPublicKey => "invalid public key",
-            PkixErrorKind::InvalidAlgorithm => "invalid algorithm",
+            PkixErrorKind::InvalidAlgorithmIdentifier => "invalid algorithm identifier",
             PkixErrorKind::UnsupportedAlgorithm => "unsupported algorithm",
             PkixErrorKind::UnknownCriticalExtension => "unknown critical extension",
             PkixErrorKind::KeyUsageViolated => "key usage violated",
