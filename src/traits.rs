@@ -2,7 +2,7 @@ use crate::types::CertificateKeyUsages;
 use std::{error::Error, fmt::Debug, future::Future};
 use x509_cert::{
     der::{asn1::BitString, Any},
-    name::RdnSequence,
+    name::Name,
     spki::SubjectPublicKeyInfo,
     Certificate,
 };
@@ -28,13 +28,13 @@ pub trait KeyUsagesVerifier: Debug + Send + Sync {
 }
 
 pub trait AsEntity {
-    fn subject(&self) -> &RdnSequence;
+    fn subject(&self) -> &Name;
 
     fn spki(&self) -> &SubjectPublicKeyInfo<Any, BitString>;
 }
 
 impl AsEntity for Certificate {
-    fn subject(&self) -> &RdnSequence {
+    fn subject(&self) -> &Name {
         &self.tbs_certificate.subject
     }
 
@@ -43,8 +43,8 @@ impl AsEntity for Certificate {
     }
 }
 
-impl AsEntity for (RdnSequence, SubjectPublicKeyInfo<Any, BitString>) {
-    fn subject(&self) -> &RdnSequence {
+impl AsEntity for (Name, SubjectPublicKeyInfo<Any, BitString>) {
+    fn subject(&self) -> &Name {
         &self.0
     }
 

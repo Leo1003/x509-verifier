@@ -1,5 +1,5 @@
 use crate::types::TrustAnchor;
-use x509_cert::{name::RdnSequence, Certificate};
+use x509_cert::{name::Name, Certificate};
 
 #[derive(Clone, Debug, Default)]
 pub struct CertificatePool {
@@ -11,7 +11,7 @@ pub struct CertificatePool {
 impl CertificatePool {
     pub fn find_trustanchors_by_subject<'s>(
         &'s self,
-        name: &'s RdnSequence,
+        name: &'s Name,
     ) -> impl Iterator<Item = &'s TrustAnchor> {
         self.trust_anchors
             .iter()
@@ -20,7 +20,7 @@ impl CertificatePool {
 
     pub fn find_intermediate_by_subject<'s>(
         &'s self,
-        name: &'s RdnSequence,
+        name: &'s Name,
     ) -> impl Iterator<Item = &'s Certificate> {
         self.intermediate_certs
             .iter()
