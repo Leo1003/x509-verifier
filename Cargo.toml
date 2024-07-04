@@ -22,6 +22,8 @@ x509-ocsp = { version = "0.2.1", features = ["std", "builder"] }
 ed25519-dalek = { version = "2.1.1", features = ["signature", "pkcs8", "digest"] }
 static_assertions = "1.1.0"
 time = "0.3.36"
+ipnetwork = { version = "0.20.0", default-features = false }
+derive_more = { version = "1.0.0-beta.6", features = ["full"] }
 
 [patch.crates-io]
 # See: https://github.com/RustCrypto/signatures/pull/823

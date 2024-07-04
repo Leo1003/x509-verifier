@@ -62,11 +62,14 @@ impl From<der::Error> for PkixError {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PkixErrorKind {
     BasicConstraintsViolated,
+    NameConstraintsViolated,
     InvalidValidity,
     CertificateExpired,
     CertificateNotYetValid,
     InvalidPublicKey,
     InvalidAlgorithmIdentifier,
+    InvalidSubtree,
+    InvalidIpAddressConstraints,
     UnsupportedAlgorithm,
     UnknownCriticalExtension,
     KeyUsageViolated,
@@ -79,18 +82,22 @@ impl PkixErrorKind {
     pub const fn significant(&self) -> u32 {
         match self {
             // Certificate validity errors
-            PkixErrorKind::CertificateNotYetValid => 305,
-            PkixErrorKind::CertificateExpired => 304,
-            PkixErrorKind::KeyUsageViolated => 303,
-            PkixErrorKind::BadSignature => 302,
-            PkixErrorKind::BasicConstraintsViolated => 301,
+            PkixErrorKind::CertificateNotYetValid => 321,
+            PkixErrorKind::CertificateExpired => 320,
+            PkixErrorKind::KeyUsageViolated => 311,
+            PkixErrorKind::BadSignature => 310,
+            PkixErrorKind::BasicConstraintsViolated => 302,
+            PkixErrorKind::NameConstraintsViolated => 301,
             PkixErrorKind::UnknownCriticalExtension => 300,
             // Unsupported features of this library
             PkixErrorKind::UnsupportedAlgorithm => 200,
-            // Certificate format errors or specification violations
-            PkixErrorKind::InvalidAlgorithmIdentifier => 103,
-            PkixErrorKind::InvalidValidity => 102,
-            PkixErrorKind::InvalidPublicKey => 101,
+            // Certificate format errors or value not conforming to
+            // the RFC 5280 profile
+            PkixErrorKind::InvalidAlgorithmIdentifier => 122,
+            PkixErrorKind::InvalidValidity => 121,
+            PkixErrorKind::InvalidPublicKey => 120,
+            PkixErrorKind::InvalidIpAddressConstraints => 112,
+            PkixErrorKind::InvalidSubtree => 111,
             PkixErrorKind::DerError => 100,
             // Algorithm errors
             PkixErrorKind::UnknownIssuer => 0,
@@ -100,11 +107,14 @@ impl PkixErrorKind {
     pub const fn as_str(&self) -> &'static str {
         match self {
             PkixErrorKind::BasicConstraintsViolated => "basic constraints violated",
+            PkixErrorKind::NameConstraintsViolated => "name constraints violated",
             PkixErrorKind::InvalidValidity => "invalid validity",
             PkixErrorKind::CertificateExpired => "certificate expired",
             PkixErrorKind::CertificateNotYetValid => "certificate not yet valid",
             PkixErrorKind::InvalidPublicKey => "invalid public key",
             PkixErrorKind::InvalidAlgorithmIdentifier => "invalid algorithm identifier",
+            PkixErrorKind::InvalidSubtree => "invalid general subtree",
+            PkixErrorKind::InvalidIpAddressConstraints => "invalid IP address constraints",
             PkixErrorKind::UnsupportedAlgorithm => "unsupported algorithm",
             PkixErrorKind::UnknownCriticalExtension => "unknown critical extension",
             PkixErrorKind::KeyUsageViolated => "key usage violated",

@@ -11,14 +11,16 @@ use crate::{
 };
 use const_oid::ObjectIdentifier;
 use der::{referenced::OwnedToRef, Encode};
+use name_constraints::ParsedSubtrees;
 use pkcs8::AssociatedOid;
 use time::PrimitiveDateTime;
 use x509_cert::{
-    ext::pkix::{BasicConstraints, ExtendedKeyUsage, KeyUsage},
+    ext::pkix::{constraints::name::GeneralSubtrees, BasicConstraints, ExtendedKeyUsage, KeyUsage},
     Certificate,
 };
 
 pub mod key_usage;
+mod name_constraints;
 mod options;
 mod path;
 
@@ -99,6 +101,9 @@ fn cert_path_verifying(cert_path: &CertificatePath) -> PkixResult<()> {
     // TODO: Check name constraints
 
     let mut entity: &dyn AsEntity = cert_path.trust_anchor;
+    let mut permitted_subtrees = ParsedSubtrees::default();
+    let mut excluded_subtrees = ParsedSubtrees::default();
+
     for cert in cert_path
         .intermediates
         .iter()
@@ -106,7 +111,11 @@ fn cert_path_verifying(cert_path: &CertificatePath) -> PkixResult<()> {
         .rev()
         .chain(Some(cert_path.end_certificate))
     {
+        // Verifiying
         verify_signature(cert, entity)?;
+
+        // Update states
+        // RFC 5280 Section 6.1.4 Preparation for Certificate i+1
         entity = cert;
     }
 
@@ -245,9 +254,8 @@ where
             ) {
                 Ok(()) => return Ok(()),
                 Err(e) => match e.kind() {
-                    PkixErrorKind::InvalidAlgorithmIdentifier | PkixErrorKind::UnsupportedAlgorithm => {
-                        error = e
-                    }
+                    PkixErrorKind::InvalidAlgorithmIdentifier
+                    | PkixErrorKind::UnsupportedAlgorithm => error = e,
                     _ => return Err(e),
                 },
             }

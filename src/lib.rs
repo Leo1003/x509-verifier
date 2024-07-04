@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate derive_more;
+#[macro_use]
 extern crate static_assertions;
 
 pub use x509_cert;
